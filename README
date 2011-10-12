@@ -1,0 +1,24 @@
+A couple of useful qa tools for sequencing data.
+
+I. Setup:
+
+   Change Makefile $SAMTOOLS path to your samtools instalation path.
+   If you don't have samtools, you can find it here:
+      http://samtools.sourceforge.net/
+
+   Just run make and you should be done!
+
+II. Tools:
+
+1. qaCompute
+   Computes normal and span coverage from a bam/sam file.
+   Also counts unmapped and sub-par quality reads.
+   For more info on the parameteres try ./qaCompute
+
+2. removeUnmapped
+   Remove unmapped and sub-par quality reads from a bam/sam file.
+   For more info on the parameters try ./removeUnmapped
+
+3. computeInsertSizeHistogram
+   Compute the insert size distribution from a bam/sam file.
+   For more info on the parameters try ./computeInsertSizeHistogram 
