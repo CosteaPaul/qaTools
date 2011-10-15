@@ -90,7 +90,7 @@ static void compute_print_cov(FILE* outputFile, Options userOpt, int* data, char
   //Go through chromosome and count avarage covarage.
   for (i=0; i<chrSize; ++i){
     covVal += data[i];
-    if (covVal < 0) {//int overrun!!
+    if (covVal < 0) {//int overrun!?
       fprintf(stderr,"Probably really good coverage, since variables overrun!\n");
     }
     //This will be sorted later.
@@ -158,7 +158,6 @@ samfile_t * open_alignment_file(std::string path)
     //BAM file!                                                                                                                                    
     flag += "b";                                                                                                                                                                                                             
   }
-  //fprintf(stderr,"header: %d, flag: %s\n",head,flag.c_str());
   if ((fp = samopen(path.c_str(), flag.c_str() , 0)) == 0) {
     fprintf(stderr, "qaCompute: Failed to open file %s\n", path.c_str());
   } 
@@ -209,8 +208,6 @@ int main(int argc, char *argv[])
     headerF = open_alignment_file(headerFile);
     EXIT_IF_NULL(headerF)
   }
-
-  //fprintf(stderr,"Targets: %d",headerF->header->n_targets);
 
   std::string alignFile(argv[optind]);
   fp = open_alignment_file(alignFile);
@@ -294,15 +291,18 @@ int main(int argc, char *argv[])
 
 	  //Get length of next section                                                                                       
           chrSize = head->target_len[core->tid];
+	  if (chrSize < 1) {//We can't have such sizes! this can't be right
+	    fprintf(stderr,"%s has size %d, which can't be right!\nCheck bam header!",head->target_name[core->tid],chrSize);
+	  }
           totalGenomeLength += chrSize;
-          printf("Computing %s of size %u... \n",head->target_name[core->tid],chrSize);
+          fprintf(stderr,"Computing %s of size %u... \n",head->target_name[core->tid],chrSize);
 
 	  //Done with current section.
 	  //Allocate memory
 	  entireChr = (int*)realloc(entireChr, (chrSize+1)*sizeof(int));
 	  
 	  if (entireChr == NULL) {
-	    printf("Allocation failed! \n");
+	    fprintf(stderr,"Allocation failed! \n");
 	    return -1;
 	  }
 	  memset(entireChr, 0, (chrSize+1)*sizeof(int));
