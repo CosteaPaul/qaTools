@@ -25,7 +25,7 @@
 typedef struct
 {
   int doMedian,maxCoverage,minQual,maxInsert;
-  bool spanCov;
+  bool spanCov,silent;
   FILE* detailed;
 }Options;
 
@@ -63,9 +63,10 @@ static int print_usage()
   fprintf(stderr, "Options: \n");
   fprintf(stderr, "         -m            Also compute median coverage\n");
   fprintf(stderr, "         -q            Quality threshold. (min quality to consider) [1].\n");
+  fprintf(stderr, "         -d            Print per-chromosome histogram [<output.out>.detail]\n");
+  fprintf(stderr, "         -i            SIlent.Don't print too much stuff!\n");
   fprintf(stderr, "         -s [INT]      Compute 'span coverage' rather than base coverage, limiting insert size to INT. -1 -> consider all!\n");
   fprintf(stderr, "         -c [INT]      Maximum coverage to consider in histogram [30]\n");
-  fprintf(stderr, "         -d            Print per-chromosome histogram [<output.out>.detail]\n");
   fprintf(stderr, "         -h [STR]      Use header from specified file. .sam OR .bam (Header must match the info in your input file. Otherwise, output is meaningless!)\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "Note: Input file should be sorted\n\n");
@@ -133,10 +134,12 @@ static void compute_print_cov(FILE* outputFile, Options userOpt, int* data, char
   }
 
   //Printout avarage coverage over this chrom
-  printf("Coverage sum %lu ! \n", covSum);
-  printf("Average coverage over %s : %3.2f\n", name, (double)covSum / chrSize);
-  if (userOpt.doMedian)
-    printf("Median coverage over %s : %d\n", name, data[chrSize/2]);
+  if (!userOpt.silent) {
+    fprintf(stdout,"Coverage sum %lu ! \n", covSum);
+    fprintf(stdout,"Average coverage over %s : %3.2f\n", name, (double)covSum / chrSize);
+    if (userOpt.doMedian)
+      fprintf(stdout,"Median coverage over %s : %d\n", name, data[chrSize/2]);
+  }
   if (userOpt.doMedian)
     fprintf(outputFile, "%s\t%d\t%3.5f\t%d\n", name, chrSize, (double)covSum / chrSize, data[chrSize/2]);
   else
@@ -176,22 +179,24 @@ int main(int argc, char *argv[])
   userOpt.doMedian = 0;
   userOpt.maxCoverage = 30;
   userOpt.spanCov = false;
+  userOpt.silent = false;
   userOpt.detailed = NULL;
   userOpt.minQual = 1;
   userOpt.maxInsert = -1;
   bool doDetail = false;
   int arg;
   //Get args                                                                                                                                               
-  while ((arg = getopt(argc, argv, "mds:q:c:h:")) >= 0) {
+  while ((arg = getopt(argc, argv, "mdis:q:c:h:")) >= 0) {
     switch (arg) {
     case 'm': userOpt.doMedian = 1; break;
     case 'd': doDetail = true; break;
+    case 'i': userOpt.silent = true; break;
     case 'q': userOpt.minQual = atoi(optarg); break;
     case 'c': userOpt.maxCoverage = atoi(optarg); break;
     case 'h': headerFile = optarg; break;
     case 's': userOpt.spanCov = true;
       userOpt.maxInsert = atoi(optarg);
-      fprintf(stderr,"Max insert size %d\n",userOpt.maxInsert);
+      fprintf(stdout,"Max insert size %d\n",userOpt.maxInsert);
       break;
     }
   }
@@ -229,7 +234,7 @@ int main(int argc, char *argv[])
     if (userOpt.detailed == NULL) {
       fprintf(stderr,"qaCompute: Unable to create detailed output file %s. No details will be printed!\n",fName.c_str());
     }
-    fprintf(stderr,"Printing details in %s!\n",fName.c_str());
+    fprintf(stdout,"Printing details in %s!\n",fName.c_str());
   }
 
     //Initialize bam entity
@@ -284,7 +289,8 @@ int main(int argc, char *argv[])
 	  
 	  //Count coverage!
 	  if (currentTid != -1) {
-	    fprintf(stderr,"Basing coverage on %u reads\n",usedReads);
+	    if (!userOpt.silent)
+	      fprintf(stdout,"Basing coverage on %u reads\n",usedReads);
 	    usedReads = 0;
 	    compute_print_cov(outputFile, userOpt, entireChr, head->target_name[currentTid], chrSize, coverageHist, currentTid);
 	  }
@@ -295,7 +301,8 @@ int main(int argc, char *argv[])
 	    fprintf(stderr,"%s has size %d, which can't be right!\nCheck bam header!",head->target_name[core->tid],chrSize);
 	  }
           totalGenomeLength += chrSize;
-          fprintf(stderr,"Computing %s of size %u... \n",head->target_name[core->tid],chrSize);
+	  if (!userOpt.silent)
+	    fprintf(stdout,"Computing %s of size %u... \n",head->target_name[core->tid],chrSize);
 
 	  //Done with current section.
 	  //Allocate memory
@@ -368,23 +375,23 @@ int main(int argc, char *argv[])
     bam_destroy1(b);
     free(entireChr);
 
-    printf("\n Duplicates:%u \n", duplicates);
+    fprintf(stdout,"\nDuplicates:%u \n", duplicates);
 
     //Print header for next table in output file
     fprintf(outputFile,"\nCov*X\tPercentage\tNr. of bases\n");
 
-    printf("Total genome lenght %lu \n", totalGenomeLength);
+    fprintf(stdout,"Total genome lenght %lu \n", totalGenomeLength);
     //Compute procentages of genome cover!.
     int i;
     for (i=0; i<=userOpt.maxCoverage; ++i) {
       if (i == 0) {
 	//Non-covered!
-	printf("%3.2f of genome has not been covered\n", (double)(coverageHist[i])/totalGenomeLength*100);
+	fprintf(stdout,"%3.2f of genome has not been covered\n", (double)(coverageHist[i])/totalGenomeLength*100);
       } else {
 	uint64_t coverage = 0;
 	//All that has been covered i, had been covered i+1, i+2 and so on times. Thus, do this addition
 	for (int x = i; x<=userOpt.maxCoverage; ++x) coverage += coverageHist[x];
-	printf("%3.2f of genome has been covered at least %dX \n", (double)(coverage)/totalGenomeLength*100, i);
+	fprintf(stdout,"%3.2f of genome has been covered at least %dX \n", (double)(coverage)/totalGenomeLength*100, i);
 	fprintf(outputFile,"%d\t%3.5f\t%lu\n",i, (double)(coverage)/totalGenomeLength*100, coverage);
       }
 
