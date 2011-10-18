@@ -13,6 +13,37 @@ II. Tools:
 1. qaCompute
    Computes normal and span coverage from a bam/sam file.
    Also counts unmapped and sub-par quality reads.
+   Parameters:
+   m	    -	Compute median coverage for each contig/chromosome. 
+   		Will make running a bit slower. Off by default.
+   
+   q [INT]  -   Quality threshold. Any read with a mapping quality under
+                INT will be ignored when computing the coverage.
+                
+		NOTE: bwa outputs mapping quality 0 for reads that map with
+		equal quality in multiple places. If you want to condier this,
+		set q to 0.
+   
+   d        -   Print coverage histrogram over each individual contig/chromosome.
+   	        These details will be printed in file <output>.detail
+   
+   
+   i        -   Silent run. Will not print running info to stdout.
+
+   s [INT]  -   Compute span coverage. (Use for mate pair libs)
+                Instead of actual read coverage, using the options will consider
+                the entire span of the insert as a read, if insert size is
+		lower than INT. 
+ 		For an accurate estimation of span coverage, I recommend
+		setting an insert size limit INT around 3*std_dev of your lib's 
+		insert size distribution.
+
+   c [INT]  -   Maximum X coverage to consider in histogram.
+
+   h [STR]  -   Use different header. 
+                Because mappers sometimes break the headers or simply don't output them, 
+		this is provieded as a non-kosher way around it. Use with care!
+
    For more info on the parameteres try ./qaCompute
 
 2. removeUnmapped
