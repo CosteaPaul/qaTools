@@ -86,12 +86,12 @@ void print_bam_to_fastq(bam1_t *b, FILE* fastq, int cutoff=10000)
   int i=0;
   for (i; (i<core->l_qseq) && (i<cutoff); ++i) {
     seq[i] = bam_nt16_rev_table[bam1_seqi(bam1_seq(b), i)];
-    //ADD 33...silly hack, i'm sure it will cause problems later..
-    qual[i] = bam1_qual(b)[i]+33;
+    //ADD 64 to bring it back to Illumina standard! silly hack, i'm sure it will cause problems later..
+    qual[i] = bam1_qual(b)[i]+64;
   }
   seq[i] = '\0';
   qual[i] = '\0';
-  //Write to bad file if user provided one                                                                                                                                                                                                    
+  //Print                                                                                                                                                                                                    
   fprintf(fastq,"@%s\n%s\n+\n%s\n",bam1_qname(b),seq,qual);
 }
 
