@@ -56,7 +56,6 @@ static bool is_mapped(const bam1_core_t *core)
 static int print_usage()
 {
   fprintf(stderr, "\n");
-  fprintf(stderr, "Program: qaCompute \n");
   fprintf(stderr, "Version: 1.5\n");
   fprintf(stderr, "Contact: Paul Costea <paul.igor.costea@scilifelab.se>\n\n");
   fprintf(stderr, "Usage:   qaCompute [options] <in.bam/sam> <output.out>\n");
