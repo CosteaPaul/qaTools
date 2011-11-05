@@ -143,7 +143,7 @@ namespace pol_util
     /* not including final '\0' */
   {
     if (src) {
-      while (' ' == *src) *src++;
+      while (' ' == *src) src++;
       while (*src && (tokchar != *src)) {
 	if (lgh) {
 	  *token++ = *src;
