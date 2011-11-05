@@ -9,10 +9,10 @@ INCLUDE=include/
 all: removeUnmapped qaCompute computeInsertSizeHistogram
 
 removeUnmapped: removeUnmapped.o
-	$(CC) removeUnmapped.o -o removeUnmapped -lz -L$(SAMTOOLS) -lbam
+	$(CC) removeUnmapped.o -o removeUnmapped -L$(SAMTOOLS) -lbam -lz
 
 qaCompute: qaCompute.o
-	$(CC) qaCompute.o -o qaCompute -lz -L$(SAMTOOLS) -lbam #-lefence
+	$(CC) qaCompute.o -o qaCompute -L$(SAMTOOLS) -lbam -lz #-lefence
 
 computeInsertSizeHistogram: computeInsertSizeHistogram.o
 	$(CC) computeInsertSizeHistogram.o -o computeInsertSizeHistogram -lz -L$(SAMTOOLS) -lbam #-fopenmp
