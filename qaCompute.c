@@ -348,7 +348,10 @@ int main(int argc, char *argv[])
 	       int32_t iSize = end-start;
 	       if ((userOpt.maxInsert == -1) || (iSize <= userOpt.maxInsert)) {
 		 ++entireChr[start];
-		 --entireChr[end];
+		 if ((uint32_t)end >= chrSize)
+		   --entireChr[chrSize-1];
+		 else
+		   --entireChr[end];
 		 ++usedReads;
 	       }
 	     } else if (core->tid != core->mtid) {
