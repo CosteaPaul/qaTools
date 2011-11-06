@@ -68,6 +68,8 @@ samfile_t * open_alignment_file(std::string path, void* aux = NULL)
   if (path.substr(path.size()-3).compare("bam") == 0) {
     //BAM file!
     flag += "b";
+  } else {
+    flag += "h"; //Force write header!
   }
   if ((fp = samopen(path.c_str(), flag.c_str() , aux)) == 0) {
     fprintf(stderr, "Failed to open file %s\n", path.c_str());
