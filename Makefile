@@ -6,7 +6,7 @@ CFLAGS=-c -Wall -g
 SAMTOOLS=/home/pcostea/private/tools/samtools-0.1.8/
 INCLUDE=include/
 
-all: removeUnmapped qaCompute computeInsertSizeHistogram
+all: removeUnmapped qaCompute computeInsertSizeHistogram doBWAQualTrimming
 
 removeUnmapped: removeUnmapped.o
 	$(CC) removeUnmapped.o -o removeUnmapped -L$(SAMTOOLS) -lbam -lz
