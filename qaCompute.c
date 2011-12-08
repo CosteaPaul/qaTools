@@ -24,17 +24,19 @@
 
 typedef struct
 {
-  int doMedian,maxCoverage,minQual,maxInsert;
+  int doMedian,maxCoverage,minQual,maxInsert,windowSize;
   bool spanCov,silent;
-  FILE* detailed;
+  FILE* detailed,*profile;
 }Options;
 
 #define MIN(x,y) \
   ((x) < (y)) ? (x) : (y)
 
 #define EXIT_IF_NULL(P) \
-  if (P == NULL) \
-    return 1;
+  if (P == NULL) {\
+  fprintf(stderr,"NULL pointer error in line %d, file(%s)\n",__LINE__,__FILE__);\
+    return 1;\
+  }
 
 /**
  * Check if read is properly mapped
@@ -63,7 +65,8 @@ static int print_usage()
   fprintf(stderr, "         -m            Also compute median coverage\n");
   fprintf(stderr, "         -q            Quality threshold. (min quality to consider) [1].\n");
   fprintf(stderr, "         -d            Print per-chromosome histogram [<output.out>.detail]\n");
-  fprintf(stderr, "         -i            SIlent.Don't print too much stuff!\n");
+  fprintf(stderr, "         -p [INT]      Print coverage profile at INT window size to bed file [<output.out>.profile] [50000]\n");
+  fprintf(stderr, "         -i            Silent.Don't print too much stuff!\n");
   fprintf(stderr, "         -s [INT]      Compute 'span coverage' rather than base coverage, limiting insert size to INT. -1 -> consider all!\n");
   fprintf(stderr, "         -c [INT]      Maximum coverage to consider in histogram [30]\n");
   fprintf(stderr, "         -h [STR]      Use header from specified file. .sam OR .bam (Header must match the info in your input file. Otherwise, output is meaningless!)\n");
@@ -78,6 +81,7 @@ static void compute_print_cov(FILE* outputFile, Options userOpt, int* data, char
   int32_t covVal = 0;
   uint64_t covSum = 0;
   uint32_t i;
+  uint64_t wSum = 0;
   //Histogram vector.
   uint64_t* localCoverageHist = NULL;
   if (userOpt.detailed) {
@@ -90,11 +94,10 @@ static void compute_print_cov(FILE* outputFile, Options userOpt, int* data, char
   //Go through chromosome and count avarage covarage.
   for (i=0; i<chrSize; ++i){
     covVal += data[i];
-    if (covVal < 0) {//int overrun!?
+    if (covVal < 0) {//int overrun!? Silly check!
       fprintf(stderr,"Probably really good coverage, since variables overrun!\n");
     }
     //This will be sorted later.
-    //If -m was not defined, this is useless, but cheaper than an 'if'
     data[i] = covVal;
     uint64_t prev = covSum;
     covSum += covVal;
@@ -113,6 +116,23 @@ static void compute_print_cov(FILE* outputFile, Options userOpt, int* data, char
     }
 
   }
+
+  //Print coverage profile?
+  if (userOpt.profile != NULL) {
+    wSum = data[0];
+    for (i=1; i<chrSize; ++i) {
+      wSum += data[i];
+      if (i % userOpt.windowSize == 0) {
+	//Print to detailed file
+	fprintf(userOpt.profile,"%s\t%d\t%d\t%4.5f\n",name,i-userOpt.windowSize+1,i,(double)wSum/userOpt.windowSize);
+	wSum = 0;
+      }
+    }
+    if ((i-1) % userOpt.windowSize != 0) {//Write last interval!
+      fprintf(userOpt.profile,"%s\t%d\t%d\t%4.5f\n",name,i-(i%userOpt.windowSize)+1,i,(double)wSum/(i%userOpt.windowSize));
+    }
+  }
+
   if (userOpt.doMedian)
     //Sort entireChr
     radix_sort(data, chrSize);
@@ -177,26 +197,37 @@ int main(int argc, char *argv[])
   std::string headerFile = "";
   userOpt.doMedian = 0;
   userOpt.maxCoverage = 30;
+  userOpt.windowSize = 50000;
+  userOpt.profile = NULL;
   userOpt.spanCov = false;
   userOpt.silent = false;
   userOpt.detailed = NULL;
   userOpt.minQual = 1;
   userOpt.maxInsert = -1;
   bool doDetail = false;
+  bool doProfile = false;
   int arg;
   //Get args                                                                                                                                               
-  while ((arg = getopt(argc, argv, "mdis:q:c:h:")) >= 0) {
+  while ((arg = getopt(argc, argv, "mdip:s:q:c:h:")) >= 0) {
     switch (arg) {
     case 'm': userOpt.doMedian = 1; break;
     case 'd': doDetail = true; break;
     case 'i': userOpt.silent = true; break;
     case 'q': userOpt.minQual = atoi(optarg); break;
     case 'c': userOpt.maxCoverage = atoi(optarg); break;
-    case 'h': headerFile = optarg; break;
+    case 'h': headerFile = optarg;
+      fprintf(stdout,"Using header from %s\n",optarg);
+      break;
+    case 'p': userOpt.windowSize = atoi(optarg);
+      doProfile = true;
+      break;
     case 's': userOpt.spanCov = true;
       userOpt.maxInsert = atoi(optarg);
       fprintf(stdout,"Max insert size %d\n",userOpt.maxInsert);
       break;
+    default:
+      fprintf(stderr,"Read wrong argument %s with value %s\n",arg,optarg);
+      return -1;
     }
   }
 
@@ -211,6 +242,7 @@ int main(int argc, char *argv[])
     outsideHeader = true;
     headerF = open_alignment_file(headerFile);
     EXIT_IF_NULL(headerF)
+    EXIT_IF_NULL(headerF->header)
   }
 
   std::string alignFile(argv[optind]);
@@ -234,6 +266,14 @@ int main(int argc, char *argv[])
       fprintf(stderr,"qaCompute: Unable to create detailed output file %s. No details will be printed!\n",fName.c_str());
     }
     fprintf(stdout,"Printing details in %s!\n",fName.c_str());
+  }
+  if (doProfile) {//Create profile output file.
+    std::string fName = argv[optind+1];
+    fName += ".profile";
+    userOpt.profile = fopen(fName.c_str(),"wt");
+    if (userOpt.profile == NULL) {
+      fprintf(stderr,"qaCompute: Unable to create profile output file %s. Profile will not be printed!\n",fName.c_str());
+    }
   }
 
     //Initialize bam entity
@@ -432,6 +472,9 @@ int main(int argc, char *argv[])
     
     if (userOpt.detailed)
       fclose(userOpt.detailed);
+
+    if (userOpt.profile)
+      fclose(userOpt.profile);
   
   return 0;
 }

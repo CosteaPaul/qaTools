@@ -26,7 +26,8 @@ II. Tools:
    
    d        -   Print coverage histrogram over each individual contig/chromosome.
    	        These details will be printed in file <output>.detail
-   
+  
+   p [INT]  -   Print coverage profile to bed file, averaged over given window size.  
    
    i        -   Silent run. Will not print running info to stdout.
 
