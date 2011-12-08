@@ -50,7 +50,7 @@ static int print_usage()
     fprintf(stderr, "         -i INT        minimum insert size [0]. Does not apply to single end libs\n");
     fprintf(stderr, "         -s            keep good quality unpaired reads\n");
     fprintf(stderr, "         -l            library is single end\n");
-    fprintf(stderr, "         -k STR        write removed to file\n");
+    fprintf(stderr, "         -k STR        write removed to file. If STR ends with .fastq, output will be in fastq format. Otherwise, SAM format\n");
     fprintf(stderr, "         -g STR        write good pairs to file\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Note: Paired-end sam/bam must contain paires as subsequent entries. Position sorted files will not be processed!\n\n");
