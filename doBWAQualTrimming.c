@@ -108,9 +108,6 @@ int main(int argc, char* argv[])
 
   long dropped = 0;
   long count = 0;
-  //long sizes[50];
-  //for (int x=0; x<50; ++x)
-  //sizes[x] = 0;
 
   pol_util::FastqEntry* entry1 = NULL;
   pol_util::FastqEntry* entry2 = NULL;
@@ -128,9 +125,9 @@ int main(int argc, char* argv[])
 
     if (onlyN == true) {
       bool rem1,rem2;
-      rem1 = entry1->removeNs(min_length);
+      rem1 = entry1->removePoly('N',min_length);
       if (isPairedLib){
-	rem2 = entry2->removeNs(min_length);
+	rem2 = entry2->removePoly('N',min_length);
       }
       if ((!rem1) || (isPairedLib && !rem2)) {
 	++dropped;

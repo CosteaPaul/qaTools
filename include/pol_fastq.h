@@ -71,7 +71,7 @@ namespace pol_util
     };
 
     /**
-     * @brief Return entry formated as a 4 line string.
+     * @brief Return entry formatted as a 4 line string.
      */
     std::string toString() {
       std::string entry = "";
@@ -94,6 +94,32 @@ namespace pol_util
     };
 
     /**
+     * @brief return part of sequnce. from start to end
+     * @param end -> default return all: -1
+     * @param start -> start of seq. default 0
+     */
+    std::string getSequence(int start = 0, int end = -1) {
+      if (end == -1)
+	end = strlen(m_strSeq);
+      std::string seq = "";
+      for (int i=start; i<end; ++i) seq += m_strSeq[i];
+      return seq;
+    }
+
+    std::string getName() {
+      std::string name = m_strName;
+      return name;
+    }
+
+    std::string getQuality(int start = 0, int end = -1) {
+      if (end == -1)
+        end = strlen(m_strQual);
+      std::string qual = "";
+      for (int i=start; i<end; ++i) qual += m_strQual[i];
+      return qual;
+    }
+
+    /**
      * @brief Trim read the specified quality and minimum lenght
      * @return True if read is still usable
      */
@@ -103,7 +129,10 @@ namespace pol_util
       int s = 0, l, max = 0, max_l = strlen(m_strQual) - 1;
 
       for (l = strlen(m_strQual) - 1; l >= 1; --l) {
-	s += trim_qual - (m_strQual[l] - 64);
+	if (m_strQual[l] - 32 < 0) {
+	  fprintf(stderr,"Base quality under 0!");
+	}
+	s += trim_qual - (m_strQual[l] - 32);
 	if (s < 0) break;
 	if (s > max) {
 	  max = s; max_l = l;
@@ -116,33 +145,76 @@ namespace pol_util
       }
       //Trim seq and quality strings
       m_strQual[max_l] = '\0';
-      //qual[max_l+1] = '\0';
       m_strSeq[max_l] = '\0';
-      //seq[max_l+1] = '\0';
       return true;
     };
 
     /**
-     * @breif Cut N's from the end of read
+     * @breif Cut PolyX's from the beginning/end of read
+     * @param nucl       - the nucleotide to cut poly regions of
+     * @param min_length - minimum lenght accepted for output read. Won't be trimmed if under this size!
+     * @param from_end   - cut from the end of read if True, otherwise from the beginning [Def: true]
+     * @param count      - how many bases != from nucl to consider before stopping [Def: 2]
      * @return True is read after cutting N is longer than or equal to min_length
      */
-    bool removeNs(int min_length)
+    bool removePoly(char nucl, int min_length, bool from_end = true, int count = 2)
     {
       int l;
-      for (l = strlen(m_strSeq) - 1; l >= min_length; --l) {
-        if (m_strSeq[l] != 'N') {
-	  break;
+      if (from_end) {//Removing from the end
+	int c = 0;
+	for (l = strlen(m_strSeq) - 1; l >= min_length; --l) {
+	  if (m_strSeq[l] != nucl) {
+	    c++;
+	    if (c >= count) {
+	      //This is it! Recuperate pervious base.
+	      l++;
+	      break;
+	    }
+	  } else {
+	    //Reset c just in case.
+	    c = 0;
+	  }
 	}
-      }
+	//Ignore this if len < cutoff
+	if (l < min_length) {
+	  return false;
+	}
+	m_strQual[l] = '\0';
+	m_strSeq[l] = '\0';
+	return true;
 
-      //Ignore this if len < cutoff
-      if (l < min_length) {
-        return false;
+      } else {//Removing from the beginning.
+	int c = 0;
+	for (l = 0; l < strlen(m_strSeq); ++l) {
+          if (m_strSeq[l] != nucl) {
+            c++;
+            if (c >= count) {
+              //This is it! Recuperate pervious base.
+              l--;
+              break;
+            }
+          } else {
+            //Reset c just in case.
+            c = 0;
+          }
+        }
+	if (strlen(m_strQual)-l < min_length) {
+	  return false;
+	}
+	//Move mem! Keep /0 termiator
+	memmove(m_strQual, m_strQual+l, strlen(m_strQual)-l+1);
+	memmove(m_strSeq, m_strSeq+l, strlen(m_strSeq)-l+1);
+	//Check is give nucleodite is not overrepresented in the sequence.
+	c=0;
+	for (l=0; l < strlen(m_strSeq); ++l)
+	  if (m_strSeq[l]==nucl) {
+	    ++c;
+	  }
+	//Is it more than 70% of seqnece? then drop it!
+	if (c >= l/2)
+	  return false;
+	return true;
       }
-
-      m_strQual[l] = '\0';
-      m_strSeq[l] = '\0';
-      return true;
     };
 
     /**
@@ -151,9 +223,9 @@ namespace pol_util
      * @param mismatch -> maximum mismatches allowed.
      * @return True is seq found, false otherwise.
      */
-    bool contains(std::string seq, int mismatch = 0)
+    bool contains(std::string seq, int &pos, int mismatch = 0)
     {
-      int pos = 0;
+      pos = 0;
       bool res = pol_util::find_substring(m_strSeq,seq,pos,mismatch);
       return res;
     };

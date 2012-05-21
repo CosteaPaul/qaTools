@@ -77,6 +77,25 @@ samfile_t * open_alignment_file(std::string path, void* aux = NULL)
   return fp;
 }
 
+/**
+ * Parse CIGAR string and check for "junction" spanning read
+ * @return bool
+ */
+bool isJunction(const bam1_t *entry)
+{
+  int32_t pos = entry->core.pos;
+  uint32_t cLen = entry->core.n_cigar;
+  for (uint32_t k = 0; k<cLen; ++k) {
+    int op = bam1_cigar(entry)[k] & BAM_CIGAR_MASK; //operation
+    int l = bam1_cigar(entry)[k] >> BAM_CIGAR_SHIFT; //length 
+    if (op != BAM_CMATCH) {//This is not a match!
+      if (l>1000) {
+	return true;
+      }
+    }
+  }
+  return false;
+}
 
 void print_bam_to_fastq(bam1_t *b, FILE* fastq, int cutoff=10000)
 {
@@ -210,9 +229,9 @@ int main(int argc, char *argv[])
     }
 
   } else {
+    int junctionCount = 0;
     while (samread(fp, b) >= 0) {
       samread(fp,c);
-
       //Are these mapings paired
       if (b->core.isize == 0) {
 	//Compute insert size
@@ -229,6 +248,13 @@ int main(int argc, char *argv[])
 	}
 	samwrite(out,b);
 	samwrite(out,c);
+	/////////////////// Junction count //////////////////////////////
+	if (isJunction(b))
+	  junctionCount += 1;
+	if (isJunction(c))
+	  junctionCount += 1;
+		    
+	/////////////////////////////////////////////////////////////////
 	
 	if (b_name.compare(c_name) != 0)
 	  fprintf(stderr,"Bam file is not properly ordered: %s - %s,\n or might your lib be single end? Use -l then.\n",b_name.c_str(),c_name.c_str());
@@ -260,6 +286,7 @@ int main(int argc, char *argv[])
 	}
       }
     }
+    fprintf(stdout,"Possible junctions: %d\n",junctionCount);
   }
 
   bam_destroy1(b);
