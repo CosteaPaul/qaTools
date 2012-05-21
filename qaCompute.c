@@ -169,6 +169,26 @@ static void compute_print_cov(FILE* outputFile, Options userOpt, int* data, char
 }
 
 /**
+ * Print 0 coverage over some id's
+ */
+void printSkipped(FILE* outputFile, Options userOpt, bam_header_t* head, int start, int end)
+{
+  for (int i = start; i < end; ++i) {
+	  if (!userOpt.silent) {
+		  printf("Computing %s of size %u... \n",head->target_name[i],head->target_len[i]);
+		  printf("Coverage sum %d ! \n", 0);
+		  printf("Average coverage over %s : %3.5f\n", head->target_name[i], 0.0);
+		  if (userOpt.doMedian)
+			  printf("Median coverage over %s : %d\n", head->target_name[i], 0);
+	  }
+	  if (userOpt.doMedian)
+		  fprintf(outputFile, "%s\t%d\t%3.5f\t%d\n", head->target_name[i],head->target_len[i], 0.0, 0);
+	  else
+		  fprintf(outputFile, "%s\t%d\t%3.5f\n", head->target_name[i],head->target_len[i], 0.0);
+  }
+}
+
+/**
  * Open a .sam/.bam file. 
  * @returns NULL is open failed.
  */
@@ -294,6 +314,11 @@ int main(int argc, char *argv[])
     //Keep header for further reference
     bam_header_t* head = fp->header;
     
+    //Compute genome length
+    for (int i=0; i<head->n_targets; ++i) {
+    	totalGenomeLength += head->target_len[i];
+    }
+
     int32_t currentTid = -1;
 
     //Create "map" vector for histogram
@@ -339,9 +364,6 @@ int main(int argc, char *argv[])
 	  if (chrSize < 1) {//We can't have such sizes! this can't be right
 	    fprintf(stderr,"%s has size %d, which can't be right!\nCheck bam header!",head->target_name[core->tid],chrSize);
 	  }
-          totalGenomeLength += chrSize;
-	  if (!userOpt.silent)
-	    fprintf(stdout,"Computing %s of size %u... \n",head->target_name[core->tid],chrSize);
 
 	  //Done with current section.
 	  //Allocate memory
@@ -352,8 +374,20 @@ int main(int argc, char *argv[])
 	    return -1;
 	  }
 	  memset(entireChr, 0, (chrSize+1)*sizeof(int));
-	  
-	  currentTid = core->tid;
+
+	  //Have we skipped some contigs/chr from header? Should print 0 coverage on them
+	  if ((currentTid + 1 != core->tid) && (currentTid != -1)) {//Since this is a sorted file!
+		  printSkipped(outputFile,userOpt,head,currentTid+1,core->tid);
+	  }
+
+	  if (currentTid == -1) {
+		  currentTid = core->tid;
+		  printSkipped(outputFile,userOpt,head,0,currentTid);
+	  } else {
+		  currentTid = core->tid;
+	  }
+	  if (!userOpt.silent)
+		  printf("Computing %s of size %u... \n",head->target_name[core->tid],chrSize);
 	
 	}
 	
@@ -413,6 +447,12 @@ int main(int argc, char *argv[])
 
     //Compute coverage for the last "chromosome"
     compute_print_cov(outputFile, userOpt, entireChr, head->target_name[currentTid], chrSize, coverageHist, currentTid);
+
+    //Is this the last!???
+    //Print all other contings with coverage 0!
+    if (currentTid != head->n_targets) {//Print to that.
+    	printSkipped(outputFile,userOpt,head,currentTid+1,head->n_targets);
+	}
 
     bam_destroy1(b);
     free(entireChr);
