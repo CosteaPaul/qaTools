@@ -93,6 +93,10 @@ namespace pol_util
       fprintf(file,"%s",this->toString().c_str());
     };
 
+    void writeFake(FILE* file) {
+      fprintf(file,"%s\n%s\n",m_strName,"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN\n+\nBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB");
+    }
+
     /**
      * @brief return part of sequnce. from start to end
      * @param end -> default return all: -1
@@ -123,16 +127,19 @@ namespace pol_util
      * @brief Trim read the specified quality and minimum lenght
      * @return True if read is still usable
      */
-    bool trim(int qual, int min_length)
+    bool trim(int qual, int min_length, bool isSolexa=false)
     {
+      int charMove = 64;
+      if (isSolexa) 
+	charMove = 33;
       int trim_qual = qual;
       int s = 0, l, max = 0, max_l = strlen(m_strQual) - 1;
 
       for (l = strlen(m_strQual) - 1; l >= 1; --l) {
-	if (m_strQual[l] - 32 < 0) {
-	  fprintf(stderr,"Base quality under 0!");
+	if (m_strQual[l] - charMove < 0) {
+	  fprintf(stderr,"Base quality under 0! Make sure you are using the correct quality qualifications\n");
 	}
-	s += trim_qual - (m_strQual[l] - 32);
+	s += trim_qual - (m_strQual[l] - charMove);
 	if (s < 0) break;
 	if (s > max) {
 	  max = s; max_l = l;
