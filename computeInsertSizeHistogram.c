@@ -47,7 +47,7 @@ static int print_usage()
     fprintf(stderr, "\n");
     fprintf(stderr, "Program: computeInsertSizeHistogram \n");
     fprintf(stderr, "Version: 1.2\n");
-    fprintf(stderr, "Contact: Paul Costea <paul.igor.costea@scilifelab.se>\n\n");
+    fprintf(stderr, "Contact: Paul Costea <paul.igor.costea@embl.de>\n\n");
     fprintf(stderr, "Usage:   computeInsertSizeHistogram [options] <in.bam/sam> <out.hist>\n\n");
     fprintf(stderr, "Options: -q INT        minimum quality mapping to consider in counting distribution [60]\n");
     fprintf(stderr, "         -l INT        maximum insert size (size of distribution) [1000]\n");
