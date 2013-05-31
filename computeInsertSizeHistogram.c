@@ -1,6 +1,6 @@
 /* 
     qaTools - Just more qa tools.
-    Copyright (C) 2011  P. Costea(paul.igor.costea@scilifelab.se)
+    Copyright (C) 2011  P. Costea(paul.igor.costea@embl.de)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as      
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
       if (is_mapped(&b->core, minQual)) { //First is mapped...
 	if (sorted) {//This is a sorted file! Forget the second one, it's not here
 	  if (!(b->core.flag&BAM_FMUNMAP) //Mate is also mapped!
-	      && (b->core.pos < b->core.mpos)) {//Count pair only once! Thus, do this only for leftmost in pair
+	      && (b->core.pos < b->core.mpos)) {//Count pair only once! Thus, do this only for leftmost in pair	    
 	    int i_size = 0;
 	    if (b->core.tid != b->core.mtid)
 	      i_size = 1;
@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
 		}*/
 	      }
 	    }
-	  }
+	  } 
 	} else if (is_mapped(&c->core,minQual)) {//This is a consecutive entry list!
 	  //Compute the "actual" insert size. SAM is being funny here.
 	  int32_t i_size = 0;

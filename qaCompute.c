@@ -64,7 +64,7 @@ static int print_usage()
   fprintf(stderr, "Options: \n");
   fprintf(stderr, "         -m            Also compute median coverage\n");
   fprintf(stderr, "         -q            Quality threshold. (min quality to consider) [1].\n");
-  fprintf(stderr, "         -d            Print per-chromosome histogram [<output.out>.detail]\n");
+  fprintf(stderr, "         -d            Print per-chromosome histogram [<output.out>.detail]\n");            
   fprintf(stderr, "         -p [INT]      Print coverage profile at INT window size to bed file [<output.out>.profile] [50000]\n");
   fprintf(stderr, "         -i            Silent.Don't print too much stuff!\n");
   fprintf(stderr, "         -s [INT]      Compute 'span coverage' rather than base coverage, limiting insert size to INT. -1 -> consider all!\n");
@@ -138,12 +138,12 @@ static void compute_print_cov(FILE* outputFile, Options userOpt, int* data, char
     radix_sort(data, chrSize);
 
   if (localCoverageHist) {//Print details!
-    fprintf(userOpt.detailed,"%s\t",name);
-    for (int i=0; i<=userOpt.maxCoverage; ++i) {
+    fprintf(userOpt.detailed,"%s\t%d\t",name,chrSize);
+    for (int i=1; i<=userOpt.maxCoverage; ++i) {
         uint64_t coverage = 0;
         //All that has been covered i, had been covered i+1, i+2 and so on times. Thus, do this addition                                              
 	for (int x = i; x<=userOpt.maxCoverage; ++x) coverage += localCoverageHist[x];
-        fprintf(userOpt.detailed,"%3.5f\t",(double)(coverage)/chrSize*100);
+        fprintf(userOpt.detailed,"%d\t",coverage);
     }
     fprintf(userOpt.detailed,"\n");
     fflush(userOpt.detailed);
@@ -185,6 +185,14 @@ void printSkipped(FILE* outputFile, Options userOpt, bam_header_t* head, int sta
 		  fprintf(outputFile, "%s\t%d\t%3.5f\t%d\n", head->target_name[i],head->target_len[i], 0.0, 0);
 	  else
 		  fprintf(outputFile, "%s\t%d\t%3.5f\n", head->target_name[i],head->target_len[i], 0.0);
+
+	  if (userOpt.detailed) {//Print details!
+	    fprintf(userOpt.detailed,"%s\t%d\t",head->target_name[i],head->target_len[i]);
+	    for (int k=1; k<=userOpt.maxCoverage; ++k) {
+	      fprintf(userOpt.detailed,"%d\t",0);
+	    }
+	    fprintf(userOpt.detailed,"\n");
+	  }
   }
 }
 
@@ -351,6 +359,12 @@ int main(int argc, char *argv[])
 
 	if (core->tid != currentTid) {
 	  
+	  if (core->tid == -1) {//This read is not actually mapped..ufff
+            fprintf(stderr,"Read a read that has mapped flags, but isn't actually mapped.\nTrying to recover\n");
+            //Skip 
+            continue;
+          }
+
 	  //Count coverage!
 	  if (currentTid != -1) {
 	    if (!userOpt.silent)
