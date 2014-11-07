@@ -1,6 +1,6 @@
 /*  
     qaTools - Just more qa tools.
-    Copyright (C) 2011  P. Costea(paul.igor.costea@scilifelab.se)
+    Copyright (C) 2011  P. Costea(costea@embl.de)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as
@@ -22,9 +22,28 @@
 #include "radix.h"
 #include "sam.h"
 
+class Window{
+ public:
+  void Window(int Len, int Step) {
+    len = Len;
+    step = Step;
+    sum = 0;
+    sSum = 0;
+    counter = 0;
+  };
+  void add(int value) {
+    ++counter;
+    if (counter > )
+  };
+ private:
+  int len,step,counter;
+  long sum,sSum;
+};
+
 typedef struct
 {
   int doMedian,maxCoverage,minQual,maxInsert,windowSize;
+  int wIncrement,wSize;
   bool spanCov,silent;
   FILE* detailed,*profile;
 }Options;
@@ -62,14 +81,15 @@ static int print_usage()
   fprintf(stderr, "Contact: Paul Costea <paul.igor.costea@scilifelab.se>\n\n");
   fprintf(stderr, "Usage:   qaCompute [options] <in.bam/sam> <output.out>\n");
   fprintf(stderr, "Options: \n");
-  fprintf(stderr, "         -m            Also compute median coverage\n");
-  fprintf(stderr, "         -q            Quality threshold. (min quality to consider) [1].\n");
-  fprintf(stderr, "         -d            Print per-chromosome histogram [<output.out>.detail]\n");            
-  fprintf(stderr, "         -p [INT]      Print coverage profile at INT window size to bed file [<output.out>.profile] [50000]\n");
-  fprintf(stderr, "         -i            Silent.Don't print too much stuff!\n");
-  fprintf(stderr, "         -s [INT]      Compute 'span coverage' rather than base coverage, limiting insert size to INT. -1 -> consider all!\n");
-  fprintf(stderr, "         -c [INT]      Maximum coverage to consider in histogram [30]\n");
-  fprintf(stderr, "         -h [STR]      Use header from specified file. .sam OR .bam (Header must match the info in your input file. Otherwise, output is meaningless!)\n");
+  fprintf(stderr, "         -m               Also compute median coverage\n");
+  fprintf(stderr, "         -q               Quality threshold. (min quality to consider) [1].\n");
+  fprintf(stderr, "         -d               Print per-chromosome histogram [<output.out>.detail]\n");            
+  fprintf(stderr, "         -p [INT]         Print coverage profile at INT window size to bed file [<output.out>.profile] [50000]\n");
+  fprintf(stderr, "         -e [INT1],[INT2] Print sliding window coverage profile, with increment INT1 and size INT2\n");
+  fprintf(stderr, "         -i               Silent.Don't print too much stuff!\n");
+  fprintf(stderr, "         -s [INT]         Compute 'span coverage' rather than base coverage, limiting insert size to INT. -1 -> consider all!\n");
+  fprintf(stderr, "         -c [INT]         Maximum coverage to consider in histogram [30]\n");
+  fprintf(stderr, "         -h [STR]         Use header from specified file. .sam OR .bam (Header must match the info in your input file. Otherwise, output is meaningless!)\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "Note: Input file should be sorted\n\n");
   return 1;
@@ -246,11 +266,13 @@ int main(int argc, char *argv[])
   userOpt.detailed = NULL;
   userOpt.minQual = 1;
   userOpt.maxInsert = -1;
+  userOpt.wIncrement = -1;
+  userOpt.wSize = -1;
   bool doDetail = false;
   bool doProfile = false;
   int arg;
   //Get args                                                                                                                                               
-  while ((arg = getopt(argc, argv, "mdip:s:q:c:h:")) >= 0) {
+  while ((arg = getopt(argc, argv, "mdip:s:q:c:h:e:")) >= 0) {
     switch (arg) {
     case 'm': userOpt.doMedian = 1; break;
     case 'd': doDetail = true; break;
@@ -266,6 +288,16 @@ int main(int argc, char *argv[])
     case 's': userOpt.spanCov = true;
       userOpt.maxInsert = atoi(optarg);
       fprintf(stdout,"Max insert size %d\n",userOpt.maxInsert);
+      break;
+    case 'e':
+      tok = strtok(optarg, ",");
+      userOpt.wIncrement = atoi(tok);
+      tok = strtop(NULL,",");
+      userOpt.wSize = atoi(tok);
+      if (userOpt.wIncrement > userOpt.wSize) {
+	fprintf(stderr,"The increment you have given is bigger than your window size. This is not really a sliding window. Think again!.\n");
+	return -1;
+      }
       break;
     default:
       fprintf(stderr,"Read wrong argument %s with value %s\n",arg,optarg);

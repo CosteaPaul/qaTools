@@ -1,12 +1,16 @@
 # Using gcc for now
 CC=g++
 # Flags for the compiles
-CFLAGS=-c -Wall -g
+CFLAGS=-c -Wall
 # Samtools path
-SAMTOOLS=/home/pcostea/private/tools/samtools-0.1.8/
+SAMTOOLS=/g/bork8/costea/samtools/samtools-0.1.18
+#SAMTOOLS=/g/bork8/costea/samtools/samtools-1.1
 INCLUDE=include/
 
 all: removeUnmapped qaCompute computeInsertSizeHistogram doBWAQualTrimming
+
+fixPairedEnd: fixPairedEnd.o
+	$(CC) fixPairedEnd.o -o fixPairedEnd -L$(SAMTOOLS) -lbam -lz
 
 removeUnmapped: removeUnmapped.o
 	$(CC) removeUnmapped.o -o removeUnmapped -L$(SAMTOOLS) -lbam -lz
@@ -20,11 +24,14 @@ computeInsertSizeHistogram: computeInsertSizeHistogram.o
 doBWAQualTrimming: doBWAQualTrimming.o
 	$(CC) doBWAQualTrimming.o -o doBWAQualTrimming -lz
 
+fixPairedEnd.o:	fixPairedEnd.c
+	$(CC) -I$(SAMTOOLS) $(CFLAGS) fixPairedEnd.c
+
 removeUnmapped.o: removeUnmapped.c
 	$(CC) -I$(SAMTOOLS) $(CFLAGS) removeUnmapped.c
 
 qaCompute.o: qaCompute.c
-	$(CC) -I$(SAMTOOLS) $(CFLAGS) qaCompute.c
+	$(CC) -I$(SAMTOOLS) $(CFLAGS) -o qaCompute.o qaCompute_perInterval.c
 
 computeInsertSizeHistogram.o: computeInsertSizeHistogram.c
 	$(CC) -I$(SAMTOOLS) $(CFLAGS) computeInsertSizeHistogram.c
@@ -37,3 +44,4 @@ clean:
 	rm -rf *o qaCompute
 	rm -rf *o computeInsertSizeHistogram
 	rm -rf *o doBWAQualTrimming
+	rm -rf *o fixPairedEnd
