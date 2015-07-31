@@ -86,6 +86,18 @@ namespace pol_util
       return entry;
     };
 
+    /*
+     * @brief Write out as fasta entry, without quality scores
+     */
+    void writeFasta(FILE *file) {
+      std::string out = ">";
+      out += m_strName;
+      out += '\n';
+      out += m_strSeq;
+      out += '\n';
+      fprintf(file,"%s",out.c_str());
+    };
+
     /**
      * @brief toString wrapper for direct file writing.
      */

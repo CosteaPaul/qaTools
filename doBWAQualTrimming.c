@@ -33,6 +33,7 @@ static void usage()
   fprintf(stderr, "                       Use: doBWAQualTrimming [Options] <in1.fastq> <in2.fastq> <out1.fastq> <out2.fastq>\n");
   fprintf(stderr, "         -s            Use solexa qualitites\n");
   fprintf(stderr, "         -v            Write discarded sequences\n");
+  fprintf(stderr, "         -a            Write fasta output\n");
   fprintf(stderr, "         -f            Replace discarded sequences with N's\n");
   fprintf(stderr, "         -n            Only remove N's from sequence. -q will be ignored.\n");
   fprintf(stderr, "         -q [INT]      Quality threshold [20]\n");
@@ -49,8 +50,9 @@ int main(int argc, char* argv[])
   bool writeDropped = false;
   bool isSolexa = false;
   bool replaceWithFake = false;
+  bool writeFasta = false;
   //Get args
-  while ((arg = getopt(argc, argv, "q:l:psfvn")) >= 0) {
+  while ((arg = getopt(argc, argv, "q:l:psafvn")) >= 0) {
     switch (arg) {
     case 'q': qual = atoi(optarg); break;
     case 'l': min_length = atoi(optarg); break;
@@ -58,6 +60,7 @@ int main(int argc, char* argv[])
     case 'n': onlyN = true; break;
     case 'v': writeDropped = true; break;
     case 's': isSolexa = true; break;
+    case 'a': writeFasta = true; break;
     case 'f': replaceWithFake = true; break;
     default: fprintf(stderr,"Wrong parameter input: %s\n",optarg); break;
     }
@@ -174,10 +177,18 @@ int main(int argc, char* argv[])
     }
 
     //Write them to the output files.
-    entry1->write(fast_q_out1);
+    if (writeFasta) {
+      entry1->writeFasta(fast_q_out1);
+    } else {
+      entry1->write(fast_q_out1);
+    }
     if (isPairedLib) {
       //Write second entry
-      entry2->write(fast_q_out2);
+      if (writeFasta) {
+	entry2->writeFasta(fast_q_out2); 
+      } else {
+	entry2->write(fast_q_out2);
+      }
     }
     delete entry1;
     delete entry2;

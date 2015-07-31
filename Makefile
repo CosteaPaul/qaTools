@@ -31,7 +31,7 @@ removeUnmapped.o: removeUnmapped.c
 	$(CC) -I$(SAMTOOLS) $(CFLAGS) removeUnmapped.c
 
 qaCompute.o: qaCompute.c
-	$(CC) -I$(SAMTOOLS) $(CFLAGS) -o qaCompute.o qaCompute_perInterval.c
+	$(CC) -I$(SAMTOOLS) $(CFLAGS) -o qaCompute.o qaCompute.c
 
 computeInsertSizeHistogram.o: computeInsertSizeHistogram.c
 	$(CC) -I$(SAMTOOLS) $(CFLAGS) computeInsertSizeHistogram.c
