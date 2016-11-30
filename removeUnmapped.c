@@ -30,10 +30,18 @@ using namespace std;
  * Check if read is properly mapped                                                      
  * @return true if read mapped, false otherwise                                           
  */
-static bool is_mapped(const bam1_core_t *core, int minQual)
+static bool is_mapped(const bam1_t *b, int minQual, double identity)
 {
+  const bam1_core_t *core = &b->core;
+  //Check out the number of operations on the cigar string.                                                                                              
+  int32_t match = 0;
+  for (int i=0; i< core->n_cigar; ++i) {
+    if ((bam1_cigar(b)[i] & BAM_CIGAR_MASK) == BAM_CMATCH) {
+      match += (bam1_cigar(b)[i] >> BAM_CIGAR_SHIFT);
+    }
+  }
 
-  if ((core->flag&BAM_FUNMAP) || (core->qual < minQual)) {
+  if ((core->flag&BAM_FUNMAP) || (core->qual < minQual) || (((double)match/core->l_qseq) < identity)) {
     return false;
   }
 
@@ -50,6 +58,7 @@ static int print_usage()
     fprintf(stderr, "         -i INT        minimum insert size [0]. Does not apply to single end libs\n");
     fprintf(stderr, "         -s            keep good quality unpaired reads\n");
     fprintf(stderr, "         -l            library is single end\n");
+    fprintf(stderr, "         -d FLOAT      min identity [0.5]\n");
     fprintf(stderr, "         -k STR        write removed to file. If STR ends with .fastq, output will be in fastq format. Otherwise, SAM format\n");
     fprintf(stderr, "         -g STR        write good pairs to file\n");
     fprintf(stderr, "\n");
@@ -83,7 +92,6 @@ samfile_t * open_alignment_file(std::string path, void* aux = NULL)
  */
 bool isJunction(const bam1_t *entry)
 {
-  int32_t pos = entry->core.pos;
   uint32_t cLen = entry->core.n_cigar;
   for (uint32_t k = 0; k<cLen; ++k) {
     int op = bam1_cigar(entry)[k] & BAM_CIGAR_MASK; //operation
@@ -136,9 +144,10 @@ int main(int argc, char *argv[])
     int minInsert = 0;
     bool keepSingle = false;
     bool isSingleEnd = false;
+    double identity = 0.5;
     int arg;
     //Get args
-    while ((arg = getopt(argc, argv, "q:i:slk:g:")) >= 0) {
+    while ((arg = getopt(argc, argv, "q:i:slk:d:g:")) >= 0) {
       switch (arg) {
       case 'q': minQual = atoi(optarg); break;
       case 'i': minInsert = atoi(optarg); break;
@@ -158,6 +167,8 @@ int main(int argc, char *argv[])
       case 'l':
 	isSingleEnd = true;
 	break;
+      case 'd':
+	identity = strtod(optarg,NULL);
       default:
 	fprintf(stderr,"Read wrong arguments! \n");
 	break;
@@ -216,7 +227,7 @@ int main(int argc, char *argv[])
 
   if (isSingleEnd) {
     while (samread(fp,b) >= 0) {
-      if (is_mapped(&b->core, minQual)) {//Good, mapped!
+      if (is_mapped(b, minQual,identity)) {//Good, mapped!
 	samwrite(out,b);
       } else if (out_rem_f || out_rem) {//Write removed?
 	//Write removed here!
@@ -238,7 +249,7 @@ int main(int argc, char *argv[])
 	b->core.isize = abs(b->core.pos - c->core.pos);
       }
 
-      if (is_mapped(&b->core, minQual) && is_mapped(&c->core, minQual) && ( (abs(b->core.isize) >= minInsert) || (b->core.tid != c->core.tid) )) {
+      if (is_mapped(b, minQual,identity) && is_mapped(c, minQual,identity) && ( (abs(b->core.isize) >= minInsert) || (b->core.tid != c->core.tid) )) {
 	string b_name = bam1_qname(b);
 	string c_name = bam1_qname(c);
 	if (b_name.find('/') != -1) {
