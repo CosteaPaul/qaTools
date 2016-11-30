@@ -23,7 +23,7 @@
 #include <list>
 #include "radix.h"
 #include "sam.h"
-#include "khash.h"
+#include "htslib/khash.h"
 
 KHASH_SET_INIT_STR(rg)
 typedef khash_t(rg) *rghash_t;
