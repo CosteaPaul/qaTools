@@ -17,7 +17,7 @@
    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOS
 */
 
-/*Contact <paul.igor.costea@scilifelab.se>*/
+/*Contact <paul.costea@weizmann.ac.il>*/
 
 #include <string>
 #include "util.h"

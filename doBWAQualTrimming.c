@@ -31,28 +31,31 @@ static void usage()
   fprintf(stderr, "Options:\n");
   fprintf(stderr, "         -p            Input is a paierd library\n");
   fprintf(stderr, "                       Use: doBWAQualTrimming [Options] <in1.fastq> <in2.fastq> <out1.fastq> <out2.fastq>\n");
+  fprintf(stderr, "         -i            Print interwoven output to stdout\n");
+  fprintf(stderr, "                       Only for paired end. Use: [...] <in1.fastq> <in2.fastq>\n");
   fprintf(stderr, "         -s            Use solexa qualitites\n");
   fprintf(stderr, "         -v            Write discarded sequences\n");
   fprintf(stderr, "         -a            Write fasta output\n");
   fprintf(stderr, "         -f            Replace discarded sequences with N's\n");
   fprintf(stderr, "         -n            Only remove N's from sequence. -q will be ignored.\n");
   fprintf(stderr, "         -q [INT]      Quality threshold [20]\n");
-  fprintf(stderr, "         -l [INT]      Lenght cutoff [54]\n\n");
+  fprintf(stderr, "         -l [INT]      Lenght cutoff [50]\n\n");
 }
 
 int main(int argc, char* argv[])
 {
   char arg;
   int qual = 20;
-  int min_length = 54;
+  int min_length = 50;
   bool onlyN = false;
   bool isPairedLib = false;
   bool writeDropped = false;
   bool isSolexa = false;
   bool replaceWithFake = false;
   bool writeFasta = false;
+  bool inter = false;
   //Get args
-  while ((arg = getopt(argc, argv, "q:l:psafvn")) >= 0) {
+  while ((arg = getopt(argc, argv, "q:l:psiafvn")) >= 0) {
     switch (arg) {
     case 'q': qual = atoi(optarg); break;
     case 'l': min_length = atoi(optarg); break;
@@ -62,11 +65,17 @@ int main(int argc, char* argv[])
     case 's': isSolexa = true; break;
     case 'a': writeFasta = true; break;
     case 'f': replaceWithFake = true; break;
+    case 'i': inter = true; break;
     default: fprintf(stderr,"Wrong parameter input: %s\n",optarg); break;
     }
   }
 
-  if (argc-optind != ((isPairedLib) ? 4 : 2)) {
+  if (isPairedLib && inter) {
+	if (argc-optind != 2) {
+		usage();
+		return 1;
+	}
+  } else if (argc-optind != ((isPairedLib) ? 4 : 2)) {
     usage();
     return 1;
   }
@@ -88,7 +97,10 @@ int main(int argc, char* argv[])
     }
     p++;
   }
-  FILE* fast_q_out1 = fopen(argv[p],"w");
+  FILE* fast_q_out1 = stdout;
+  if (!inter) {
+     fast_q_out1 = fopen(argv[p],"w");
+  }
   if (fast_q_out1 == NULL) {
     printf("Cannot create output file %s\n", argv[p]);
     return 1;
@@ -99,7 +111,7 @@ int main(int argc, char* argv[])
   FILE* drop2 = NULL;
 
   FILE* fast_q_out2 = NULL;
-  if (isPairedLib) {
+  if (isPairedLib && !inter) {
     fast_q_out2 = fopen(argv[p],"w");
     if (fast_q_out2 == NULL) {
       printf("Cannot create output file %s\n", argv[p]);
@@ -187,7 +199,11 @@ int main(int argc, char* argv[])
       if (writeFasta) {
 	entry2->writeFasta(fast_q_out2); 
       } else {
-	entry2->write(fast_q_out2);
+	if (!inter) {
+		entry2->write(fast_q_out2);
+	} else {
+		entry2->write(fast_q_out1);//Write to same output!
+	}
       }
     }
     delete entry1;
@@ -198,7 +214,9 @@ int main(int argc, char* argv[])
   fclose(fast_q_out1);
   if (isPairedLib) {
     fclose(fast_q2);
-    fclose(fast_q_out2);
+    if (!inter) {
+    	fclose(fast_q_out2);
+    }
   }
   if (writeDropped) {
     fclose(drop1);
@@ -206,9 +224,9 @@ int main(int argc, char* argv[])
       fclose(drop2);
   }
 
-  printf("\n");
-  printf("%ld reads have been dropped!\n",dropped);
-  printf("You just lost about %3.2f procent of your data!\n",(double(dropped)/count)*100);
+  fprintf(stderr,"\n");
+  fprintf(stderr,"%ld reads have been dropped!\n",dropped);
+  fprintf(stderr,"You just lost about %3.2f procent of your data!\n",(double(dropped)/count)*100);
 
 }
 
