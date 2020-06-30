@@ -5,6 +5,16 @@ I. Setup:
    Change Makefile $SAMTOOLS path to your samtools instalation path.
    If you don't have samtools, you can find it here:
       http://samtools.sourceforge.net/
+   or
+      git clone git://github.com/samtools/samtools.git
+      cd samtools
+      make
+
+   Change $HTSLIB to installation path of htslib.
+   If you don't have it, you can get it like this:
+      git clone https://github.com/samtools/htslib.git 
+      cd htslib
+      make
 
    Just run make and you should be done!
 

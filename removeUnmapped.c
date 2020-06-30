@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <string>
+#include <getopt.h>
 #include "sam.h"
 
 using namespace std;

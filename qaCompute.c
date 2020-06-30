@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <time.h>
+#include <getopt.h>
 #include <string>
 #include <map>
 #include <list>
@@ -121,7 +122,7 @@ static void specific_print_cov(FILE* outputFile, int* data, char* name, const ui
 static void compute_print_cov(FILE* outputFile, Options userOpt, int* data, char* name,const uint32_t chrSize, uint64_t* coverageHist,const int currentTid)
 {
   //clock_t start = clock();
-  int32_t covVal = 0;
+  uint64_t covVal = 0;
   uint64_t covSum = 0;
   uint32_t i;
   uint64_t wSum = 0;
